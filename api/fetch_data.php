@@ -1,7 +1,8 @@
 <?php
 /**
- * Data fetching script
- * Can be run via cron or manually to update cached data
+ * Data fetching script.
+ * Can be run via cron or manually to update cached data so API endpoints
+ * respond instantly. Think of this as a light-weight scheduler/worker.
  */
 
 require_once __DIR__ . '/../includes/helpers.php';
@@ -84,6 +85,6 @@ if ($stocksIN) {
 echo "\nFetch complete:\n";
 print_r($results);
 
-// Log the update
+// Log the update so operators can review success/failure history
 logError("Data fetch completed: " . json_encode($results));
 

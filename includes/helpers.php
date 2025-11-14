@@ -1,17 +1,26 @@
 <?php
 /**
- * Helper functions for conversions, caching, and API calls
+ * Helper functions for conversions, caching, and API calls.
+ * These utilities are shared by every API endpoint and even CLI scripts.
+ * The goal is to keep transport logic (convert.php/overview.php) extremely thin.
  */
 
 require_once __DIR__ . '/config.php';
 
 /**
- * Get cached data or fetch from API
+ * Generic cache wrapper. Accepts a callback that knows how to
+ * fetch fresh data and persists the result alongside a timestamp.
+ *
+ * @param string   $key      Cache namespace (e.g. 'crypto', 'stocks_us')
+ * @param int      $ttl      Time-to-live in seconds
+ * @param callable $callback Function name/string to invoke on cache miss
+ *
+ * @return mixed|null        Cached payload or null when both network/cache fail
  */
 function getCachedData($key, $ttl, $callback) {
     $cacheFile = CACHE_DIR . md5($key) . '.json';
     
-    // Check if cache exists and is fresh
+    // 1. Serve fresh cache if available
     if (file_exists($cacheFile)) {
         $data = json_decode(file_get_contents($cacheFile), true);
         if ($data && isset($data['timestamp'])) {
@@ -22,7 +31,7 @@ function getCachedData($key, $ttl, $callback) {
         }
     }
     
-    // Fetch new data
+    // 2. Attempt to fetch new data and persist it for future calls
     try {
         $newData = $callback();
         if ($newData !== null) {
@@ -37,7 +46,7 @@ function getCachedData($key, $ttl, $callback) {
         logError("Error fetching data for $key: " . $e->getMessage());
     }
     
-    // Fallback to cached data even if stale
+    // 3. Fallback to stale cache so the UI still renders something useful
     if (file_exists($cacheFile)) {
         $data = json_decode(file_get_contents($cacheFile), true);
         if ($data && isset($data['data'])) {
@@ -67,7 +76,8 @@ function isStale($key, $ttl) {
 }
 
 /**
- * Fetch cryptocurrency prices
+ * Fetch cryptocurrency prices (USD quotes for BTC/ETH).
+ * CoinGecko is used because it does not require an API key for simple spot data.
  */
 function fetchCryptoPrices() {
     $cryptos = ['bitcoin', 'ethereum'];
@@ -94,7 +104,8 @@ function fetchCryptoPrices() {
 }
 
 /**
- * Fetch fiat exchange rates
+ * Fetch fiat exchange rates (base USD) via exchangerate.host.
+ * Used for both USD normalization and displaying direct fiat conversions.
  */
 function fetchFiatRates() {
     $url = "https://api.exchangerate.host/latest?base=USD";
@@ -116,7 +127,9 @@ function fetchFiatRates() {
 }
 
 /**
- * Fetch metal prices (Gold and Silver per gram)
+ * Fetch metal prices (Gold and Silver per gram).
+ * The metals.live endpoint returns per-ounce data, so we normalize to grams.
+ * Includes a fallback constant to keep the UI running when the API fails.
  */
 function fetchMetalPrices() {
     // Using a free API endpoint (metals-api.com requires API key)
@@ -150,7 +163,8 @@ function fetchMetalPrices() {
 }
 
 /**
- * Fetch US stock prices
+ * Fetch US stock prices from Yahoo Finance's public chart endpoint.
+ * The API is polled one symbol at a time to keep the implementation simple.
  */
 function fetchUSStocks() {
     $stocks = ['AAPL', 'GOOGL', 'MSFT', 'TSLA'];
@@ -180,7 +194,8 @@ function fetchUSStocks() {
 }
 
 /**
- * Fetch India stock prices
+ * Fetch India stock prices (NSE tickers) from Yahoo Finance.
+ * Symbols include the `.NS` suffix and are trimmed before returning.
  */
 function fetchIndiaStocks() {
     $stocks = ['RELIANCE.NS', 'TCS.NS', 'INFY.NS']; // Yahoo Finance format
@@ -210,7 +225,8 @@ function fetchIndiaStocks() {
 }
 
 /**
- * Get vehicle prices (static data)
+ * Get vehicle prices (static data). This is an example of a "synthetic" asset
+ * that does not require external APIs but still benefits from the same UI flow.
  */
 function getVehiclePrices($region = 'US') {
     $vehicles = [
@@ -232,7 +248,14 @@ function getVehiclePrices($region = 'US') {
 }
 
 /**
- * Convert value from source asset to USD
+ * Convert a raw value (entered by the user) into USD.
+ * All downstream conversions start from this neutral currency to simplify math.
+ *
+ * @param float  $value  User-entered quantity
+ * @param string $asset  Symbol or model identifier
+ * @param string $region Currently selected region (affects stocks/vehicles)
+ *
+ * @return float|null
  */
 function convertToUSD($value, $asset, $region = 'US') {
     $cryptoPrices = getCachedData('crypto', CACHE_CRYPTO, 'fetchCryptoPrices');
@@ -260,7 +283,7 @@ function convertToUSD($value, $asset, $region = 'US') {
         return $value * $metalPrices['SILVER'];
     }
     
-    // Stocks
+    // Stocks (region aware so we only fetch what we need)
     if ($region === 'US') {
         $stocks = getCachedData('stocks_us', CACHE_STOCKS, 'fetchUSStocks');
         if (isset($stocks[$asset])) {
@@ -290,12 +313,13 @@ function convertToUSD($value, $asset, $region = 'US') {
         }
     }
     
-    // Default: assume already in USD
+    // Default: assume the incoming value is already USD denominated
     return $value;
 }
 
 /**
- * Convert USD to target asset
+ * Convert a USD amount into a specific target asset.
+ * Essentially the inverse of convertToUSD(), sharing the same cache buckets.
  */
 function convertFromUSD($usdValue, $targetAsset, $region = 'US') {
     $cryptoPrices = getCachedData('crypto', CACHE_CRYPTO, 'fetchCryptoPrices');
@@ -358,7 +382,7 @@ function convertFromUSD($usdValue, $targetAsset, $region = 'US') {
 }
 
 /**
- * Format currency symbol
+ * Helper for mapping ISO codes to friendly currency symbols.
  */
 function getCurrencySymbol($asset) {
     $symbols = [
@@ -372,7 +396,8 @@ function getCurrencySymbol($asset) {
 }
 
 /**
- * Log errors
+ * Log errors in a consistent timestamped format.
+ * Keeps history around issues such as API rate limits or malformed payloads.
  */
 function logError($message) {
     $logFile = LOG_DIR . 'errors.log';
@@ -381,7 +406,9 @@ function logError($message) {
 }
 
 /**
- * Generate sparkline data (simple price history)
+ * Generate sparkline data (simple price history).
+ * In production you could replace this with historical quotes from an API,
+ * but for now synthetic data keeps the UI engaging during demos.
  */
 function generateSparkline($asset, $days = 30) {
     // Generate mock sparkline data (in production, fetch from historical API)

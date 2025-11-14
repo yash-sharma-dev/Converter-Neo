@@ -1,4 +1,5 @@
-// ui.js - Toggle modes, dropdown animations, theme switching
+// ui.js - Toggle modes, dropdown animations, theme switching, smooth scrolling helpers.
+// Separated from converter logic to keep responsibilities focused on pure UI interactions.
 
 document.addEventListener('DOMContentLoaded', () => {
     /**

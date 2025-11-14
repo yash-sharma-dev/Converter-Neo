@@ -1,7 +1,9 @@
 <?php
 /**
- * Overview endpoint
- * Returns short/long term overview bullets + chart data
+ * Overview endpoint.
+ * Returns short/long term overview bullets + chart data for any supported asset.
+ * The copy is intentionally opinionated to make the UI feel "alive" even without
+ * a dedicated research API.
  */
 
 header('Content-Type: application/json');
@@ -30,7 +32,8 @@ try {
 }
 
 /**
- * Generate overview for an asset
+ * Generate overview for an asset.
+ * Combines narrative copy, talking points, and simulated chart data.
  */
 function generateOverview($asset, $mode) {
     $isShortTerm = ($mode === 'short');
@@ -214,7 +217,8 @@ function generateOverview($asset, $mode) {
 }
 
 /**
- * Generate chart data for an asset
+ * Generate chart data for an asset.
+ * Uses lightweight pseudo-random walk to keep charts visually interesting.
  */
 function generateChartData($asset, $days, $points, $isShortTerm = true) {
     $data = [];

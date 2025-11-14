@@ -3,6 +3,7 @@
 /**
  * Handles network calls to the PHP backend and manages cached responses.
  * Acts as a super lightweight data layer for the UI.
+ * Think of this as the "controller" between DOM events and PHP endpoints.
  */
 class AssetConverter {
     constructor() {
@@ -45,7 +46,7 @@ class AssetConverter {
             return data;
         } catch (error) {
             console.error('Conversion error:', error);
-            // Try to use cached data if available
+            // Try to use cached data if available so the UI does not go blank
             return this.getCachedData();
         }
     }
@@ -64,6 +65,7 @@ class AssetConverter {
     }
 
     setCache(data) {
+        // Persist the last successful response to power offline-ish UX
         localStorage.setItem('lastConversion', JSON.stringify(data));
     }
 }
@@ -162,6 +164,7 @@ function createAssetCard(assetKey, assetData, icon) {
     const isStale = assetData.stale || false;
     const staleBadge = isStale ? '<span class="stale-badge">Stale</span>' : '';
 
+    // Template literal keeps markup maintainable and mirrors CSS structure
     card.innerHTML = `
         <div class="asset-card-header">
             <div>

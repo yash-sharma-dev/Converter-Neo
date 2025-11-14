@@ -2,6 +2,10 @@
 
 const chartInstances = {};
 
+/**
+ * Renders or replaces a Chart.js line chart inside a given canvas element.
+ * Keeps an internal registry so repeated expansions of the same card do not leak canvases.
+ */
 function renderChart(canvasId, chartData) {
     if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
         console.warn('No chart data provided');
@@ -96,6 +100,10 @@ function renderChart(canvasId, chartData) {
     });
 }
 
+/**
+ * Lightweight sparkline renderer implemented with plain SVG for zero dependencies.
+ * Displays trend context even before the richer Chart.js canvas is opened.
+ */
 function renderSparkline(containerId, data) {
     if (!data || !Array.isArray(data) || data.length === 0) {
         return;

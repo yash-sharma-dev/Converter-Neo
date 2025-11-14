@@ -1,7 +1,8 @@
 <?php
 /**
- * Main conversion endpoint
- * Accepts POST { value, asset, mode, region } and returns JSON with converted equivalents
+ * Main conversion endpoint.
+ * Normalizes a user input, converts it into every supported asset bucket,
+ * emits sparkline data, and flags stale cache entries so the UI can badge them.
  */
 
 header('Content-Type: application/json');
@@ -33,28 +34,28 @@ try {
         throw new Exception('Invalid value');
     }
     
-    // Convert source asset to USD
+    // Convert source asset to USD so we have a consistent base currency
     $usdValue = convertToUSD($value, $asset, $region);
     
     if ($usdValue === null) {
         throw new Exception('Conversion to USD failed');
     }
     
-    // Define all target assets
+    // Define core target assets (shared across every region)
     $targetAssets = [
         'BTC', 'ETH',
         'USD', 'EUR', 'GBP', 'INR', 'JPY',
         'GOLD', 'SILVER'
     ];
     
-    // Add stocks based on region
+    // Augment list with region-specific market data
     if ($region === 'US') {
         $targetAssets = array_merge($targetAssets, ['AAPL', 'GOOGL', 'MSFT', 'TSLA']);
     } else {
         $targetAssets = array_merge($targetAssets, ['RELIANCE', 'TCS', 'INFY']);
     }
     
-    // Add vehicles
+    // Include vehicle models (synthetic assets shown alongside financial ones)
     $vehicles = getVehiclePrices($region);
     foreach ($vehicles as $vehicle) {
         $targetAssets[] = $vehicle['model'];
@@ -77,7 +78,7 @@ try {
             $sourceSymbol = getCurrencySymbol($asset) ?: $asset;
             $targetSymbol = getCurrencySymbol($targetAsset) ?: $targetAsset;
             
-            // Check if target is a vehicle
+            // Determine whether this entry represents a vehicle
             $vehicles = getVehiclePrices($region);
             $isVehicle = false;
             foreach ($vehicles as $vehicle) {
@@ -97,7 +98,7 @@ try {
                 $equiv = "$sourceSymbol" . number_format($value, 2) . " ≈ " . number_format($convertedValue, 2) . " $targetSymbol";
             }
             
-            // Check if data is stale
+            // Mark stale entries so the frontend can show a badge/tool-tip
             $stale = false;
             if (in_array($targetAsset, ['BTC', 'ETH'])) {
                 $stale = isStale('crypto', CACHE_CRYPTO);

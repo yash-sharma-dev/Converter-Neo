@@ -1,3 +1,4 @@
+/* Theme tokens – everything else references these CSS variables */
 :root {
     --theme-primary: #7C4DFF;
     --theme-secondary: #B388FF;
@@ -14,7 +15,7 @@
     --dropdown-hover: rgba(124, 77, 255, 0.3);
 }
 
-/* Light theme variables */
+/* Light theme overrides */
 body.light-theme {
     --bg-start: #F5F5F5;
     --bg-end: #E0E0E0;
