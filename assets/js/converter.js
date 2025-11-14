@@ -1,5 +1,9 @@
 // converter.js - Handles user input and fetches from PHP backend
 
+/**
+ * Handles network calls to the PHP backend and manages cached responses.
+ * Acts as a super lightweight data layer for the UI.
+ */
 class AssetConverter {
     constructor() {
         this.currentMode = 'short';
@@ -8,6 +12,10 @@ class AssetConverter {
         this.conversionData = null;
     }
 
+    /**
+     * Convert a value for a given asset/mode/region via the backend.
+     * Returns the formatted JSON payload used by the card renderer.
+     */
     async convert(value, asset, mode = 'short', region = 'US') {
         if (!value || value <= 0) {
             console.error('Invalid input value');
@@ -103,7 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Update asset cards with conversion data
+/**
+ * Render the full list/grid of asset cards with fresh conversion data.
+ * Clears previous nodes to keep DOM in sync with the latest request.
+ */
 function updateAssetCards(data) {
     const cardsContainer = document.getElementById('assetCards');
     cardsContainer.innerHTML = '';
@@ -140,6 +151,9 @@ function updateAssetCards(data) {
     });
 }
 
+/**
+ * Builds a single asset card DOM node with overview, sparkline, badges, etc.
+ */
 function createAssetCard(assetKey, assetData, icon) {
     const card = document.createElement('div');
     card.className = 'asset-card';
@@ -165,7 +179,7 @@ function createAssetCard(assetKey, assetData, icon) {
         </div>
     `;
 
-    // Add click handler for dropdown
+    // Add click handler for dropdown / expansion state
     const cardHeader = card.querySelector('.asset-card-header');
     if (cardHeader) {
         cardHeader.addEventListener('click', async (e) => {
@@ -197,6 +211,9 @@ function createAssetCard(assetKey, assetData, icon) {
     return card;
 }
 
+/**
+ * Generates the markup for the rich overview section inside a card.
+ */
 function renderOverview(overview) {
     if (!overview) return '';
 
@@ -213,6 +230,9 @@ function renderOverview(overview) {
     `;
 }
 
+/**
+ * Fetches on-demand overview data for a specific asset card when expanded.
+ */
 async function loadOverview(assetKey, cardElement) {
     const mode = document.getElementById('modeToggle').checked ? 'short' : 'long';
     
@@ -241,6 +261,9 @@ async function loadOverview(assetKey, cardElement) {
     }
 }
 
+/**
+ * Formats numeric values based on asset category for readability.
+ */
 function formatValue(value, assetKey) {
     if (value === null || value === undefined) return 'N/A';
     
@@ -264,6 +287,9 @@ function formatValue(value, assetKey) {
     }).format(value);
 }
 
+/**
+ * Converts ISO timestamps into a localised string for the UI.
+ */
 function formatTime(timestamp) {
     if (!timestamp) return '';
     const date = new Date(timestamp);

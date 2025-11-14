@@ -1,6 +1,10 @@
 // ui.js - Toggle modes, dropdown animations, theme switching
 
 document.addEventListener('DOMContentLoaded', () => {
+    /**
+     * Short/Long term toggle – updates all expanded cards so their
+     * overview data reflects the newly selected investment horizon.
+     */
     // Mode toggle (Short Term / Long Term)
     const modeToggle = document.getElementById('modeToggle');
     modeToggle.addEventListener('change', () => {
@@ -15,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    /**
+     * Region selector – automatically re-runs the latest conversion when
+     * a region changes and an amount is already present.
+     */
     // Region selector
     const regionSelector = document.getElementById('regionSelector');
     regionSelector.addEventListener('change', () => {
@@ -28,7 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Theme toggle
+    /**
+     * Theme toggle – switches between dark/light CSS variables and
+     * persists the preference in localStorage.
+     */
     const themeToggle = document.getElementById('themeToggle');
     let isDark = true;
     
@@ -61,6 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+/**
+ * Refresh overview details for a card that is already expanded.
+ * Used when switching between Short/Long modes.
+ */
 async function loadOverviewForCard(assetKey, cardElement) {
     const mode = document.getElementById('modeToggle').checked ? 'short' : 'long';
     
@@ -85,6 +100,9 @@ async function loadOverviewForCard(assetKey, cardElement) {
     }
 }
 
+/**
+ * Shares the same overview renderer as converter.js so both paths stay in sync.
+ */
 function renderOverview(overview) {
     if (!overview) return '';
 
